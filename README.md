@@ -2,9 +2,7 @@
 
 Voice-first Android controller that listens to spoken commands, reads the current screen through Accessibility APIs, asks an LLM to plan the next UI action, and executes that action on-device.
 
-JuSay is split into:
-- An Android app (Jetpack Compose + AccessibilityService + SpeechRecognizer)
-- A Python backend prototype (FastAPI + Groq SDK)
+JuSay is an Android app built with Jetpack Compose, AccessibilityService, and SpeechRecognizer.
 
 ## What It Does
 
@@ -32,8 +30,6 @@ JuSay is split into:
 |  |- app/
 |  |- gradle/
 |  |- gradlew(.bat)
-|- backend/
-|  |- main.py           # FastAPI Groq planner endpoint
 |- LICENSE
 |- README.md
 ```
@@ -48,6 +44,8 @@ JuSay is split into:
 	 - Generate next action JSON for that section
 5. JuSay executes action and optionally continues for up to 5 planning steps.
 6. Status is shown via toast + notification.
+
+All planning calls are made directly from the app to Groq over HTTPS.
 
 ## Android App Setup
 
@@ -92,71 +90,17 @@ After launching the app:
 4. Paste your Groq API key in the app and tap Save.
 5. Tap "Test Voice Command" to verify voice capture + action flow.
 
-## Backend Setup (Prototype)
+## Runtime Model Output
 
-Backend path: `backend/`
-
-The backend exposes a single endpoint that accepts:
-- `ui_tree`
-- `spoken_intent`
-
-And returns one action JSON object.
-
-### Requirements
-
-- Python 3.10+
-
-### Install
-
-```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install fastapi uvicorn groq pydantic
-```
-
-Windows PowerShell:
-
-```powershell
-cd backend
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install fastapi uvicorn groq pydantic
-```
-
-### Run
-
-```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-### Test Endpoint
-
-```bash
-curl -X POST "http://127.0.0.1:8000/process_intent" \
-	-H "Content-Type: application/json" \
-	-H "X-Groq-Api-Key: YOUR_GROQ_API_KEY" \
-	-d '{
-		"ui_tree": [{"viewIdResourceName":"com.example:id/send","text":"Send","isClickable":true}],
-		"spoken_intent": "tap send"
-	}'
-```
-
-Expected shape:
+The planner is expected to return one JSON action object with this shape:
 
 ```json
 {
-	"action": "click|type|scroll|wait",
-	"target_id": "view_id_or_text",
+	"action": "click|type|scroll|wait|launch|home|back",
+	"target_id": "view_id_or_text_or_app_name",
 	"input_text": "text_to_type_if_any"
 }
 ```
-
-## Notes About Current Integration
-
-- The Android app currently calls Groq directly using HTTPS.
-- The Python backend is available as a standalone planning service prototype.
-- If you want centralized policy/logging, wire the app to call your backend instead of Groq directly.
 
 ## Permissions Used (Android)
 
@@ -190,7 +134,7 @@ Expected shape:
 ## Tech Stack
 
 - Android: Kotlin, Jetpack Compose, AccessibilityService, SpeechRecognizer, OkHttp
-- Backend: FastAPI, Pydantic, Groq Python SDK
+- LLM provider: Groq Chat Completions API
 
 ## License
 
