@@ -1,4 +1,4 @@
-package com.example.jusay
+package com.example.jusay.utils
 
 object SafetyWall {
     val blockedPackages = listOf(
